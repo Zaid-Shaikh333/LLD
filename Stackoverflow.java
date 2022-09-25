@@ -27,11 +27,17 @@ enum UserStatus{
     ACTIVE, BLOCKED;
 }
 
+enum QuestionStatus{
+    ACTIVE, CLOSED;
+}
+
 class Member extends User{
+
     String memberId;
     List<Question> postedQuestions;
     long reputation;
     UserStatus status;
+    List<Badge> badges;
     
     public Member(String name, String email, UserRole role)
     {
@@ -44,7 +50,7 @@ class Member extends User{
 
     public boolean postQuestion(String id,String title, String description, List<String> questionTags, Member member)
     {
-        if(member.role != UserRole.MEMBER)
+        if(member.role == UserRole.GUEST)
             return false;
         
         if(member.status != UserStatus.ACTIVE)
@@ -58,6 +64,9 @@ class Member extends User{
 
     public boolean addComment(String id, String description, Member member, Question question)
     {
+        if(question.status == QuestionStatus.CLOSED)
+            return false;
+
         Comment comment = new Comment(id, description, member, question);
         question.addResponseToQuestion(comment);
         return true;
@@ -81,6 +90,26 @@ class Member extends User{
     }
 }
 
+class Moderator extends Member{
+
+    public Moderator(String name, String email, UserRole role) {
+        super(name, email, role);
+    }
+
+    public boolean closeQuestion(Question question){
+        if(question.status == QuestionStatus.CLOSED) return false;
+
+        question.status = QuestionStatus.CLOSED;
+        return true;
+    }
+    public boolean restoreQuestion(Question question){
+        if(question.status == QuestionStatus.ACTIVE) return false;
+
+        question.status = QuestionStatus.ACTIVE;
+        return true;
+    }
+}
+
 class Question{
     String questionId;
     String title;
@@ -90,6 +119,7 @@ class Question{
     List<String> questionTags;
     List<Comment> questionResponses;
     Date created;
+    QuestionStatus status;
 
     Set<Member> upVotedUsers;
     Set<Member> downVotedUsers;
@@ -102,6 +132,7 @@ class Question{
         this.member = member;
         this.questionTags.addAll(tags);
         this.created = created;
+        this.status = QuestionStatus.ACTIVE;
     }
 
     public void addResponseToQuestion(Comment comment)
@@ -136,20 +167,39 @@ class Question{
     }
 }
 
-class Comment{
-    String commentId;
-    String description;
+class Answer{
+    String answerId;
+    String content;
     Member member;
     long upvotes;
     Question question;
 
-    public Comment(String id, String description, Member member, Question question)
+    public Answer(String id, String content, Member member, Question question)
     {
-        this.commentId = id;
-        this.description = description;
+        this.answerId = id;
+        this.content = content;
         this.member = member;
         this.question = question;
         this.upvotes = 0;
     }
 
+}
+class Comment extends Answer{
+
+    public Comment(String id, String content, Member member, Question question)
+    {
+        super(id, content, member, question);
+    }
+}
+
+
+class Badge{
+    String name;
+    String description;
+
+    public Badge(String name, String description)
+    {
+        this.name = name;
+        this.description = description;
+    }
 }
